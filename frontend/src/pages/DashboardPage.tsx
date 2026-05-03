@@ -4,7 +4,7 @@ import Header from "../components/Header";
 
 import CameraIcon from "../assets/cameraIcon.svg";
 import LiveIcon from "../assets/liveIcon.svg";
-import CheckIconGreen from "../assets/checkIconGreen.svg";
+import CheckIconGreen from "../assets/checkIcon_green.svg";
 import CheckIcon from "../assets/checkIcon.svg";
 import SystemIcon from "../assets/systemIcon.svg";
 import ClockIcon from "../assets/clockIcon.svg";
@@ -39,7 +39,7 @@ const DashboardPage = () => {
         <section className="overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
             <div className="flex items-center gap-2">
-              <CameraIcon />
+              <img src={CameraIcon} alt="Camera" />
               <span className="text-[15px] font-semibold text-neutral-900">
                 카메라 1
               </span>
