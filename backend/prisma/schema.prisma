@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int         @id @default(autoincrement())
+  email       String      @unique
+  name        String?
+  providerId  String      @unique
+  createdAt   DateTime    @default(now())
+  events      FallEvent[]
+}
+
+model FallEvent {
+  id         Int      @id @default(autoincrement())
+  timestamp  DateTime @default(now())
+  status     String   # "FALL" or "STILL"
+  confidence Float?
+  imageUrl   String?  # 캡처된 이미지 데이터(Base64 또는 경로)
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id])
+}

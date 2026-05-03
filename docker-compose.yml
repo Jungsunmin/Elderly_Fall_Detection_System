@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # 1. Database (SQL)
+  db:
+    image: postgres:15-alpine
+    container_name: safewatch-db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safewatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. Main Backend (Node.js)
+  backend:
+    build: ./backend
+    container_name: safewatch-backend
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/safewatch
+      - PORT=4000
+    depends_on:
+      - db
+
+  # 3. AI Worker (Python)
+  ai-worker:
+    build: ./ai-worker
+    container_name: safewatch-ai
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - BACKEND_URL=http://backend:4000
+      - CAMERA_SOURCE=0 # USB 웹캠은 0, IP 카메라는 RTSP 주소 입력
+    depends_on:
+      - backend
+
+  # 4. Frontend (React)
+  frontend:
+    build: ./frontend
+    container_name: safewatch-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:4000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
