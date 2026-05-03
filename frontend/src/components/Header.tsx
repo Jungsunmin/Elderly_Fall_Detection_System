@@ -41,7 +41,7 @@ const MenuIcon = () => (
 );
 
 const Header = ({
-  title = "대시보드",
+  title,
   statusLabel = "정상",
   statusTone = "normal",
   onMenuClick,
