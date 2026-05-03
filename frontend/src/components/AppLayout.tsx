@@ -19,7 +19,7 @@ const AppLayout = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-dvh w-full flex-col bg-[#F8F9FA]">
+    <div className="relative flex min-h-dvh w-full flex-col bg-[#F8F9FA]">
       <Header
         title={title}
         statusLabel={statusLabel}

@@ -18,7 +18,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition ${
+      className={`absolute inset-0 z-50 transition ${
         isOpen ? "pointer-events-auto" : "pointer-events-none"
       }`}
       aria-hidden={!isOpen}
