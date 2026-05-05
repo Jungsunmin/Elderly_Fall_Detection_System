@@ -50,14 +50,16 @@ app.post("/api/events/detect", async (req, res) => {
       },
     });
 
-    // 프론트로 실시간 전송
-    io.emit("FALL_DETECTED", {
-      id: event.id,
-      status: event.status,
-      confidence: event.confidence,
-      imageUrl: event.imageUrl,
-      timestamp: event.timestamp.toISOString(),
-    });
+    // FALL 이벤트만 실시간 경보로 전송
+    if (event.status === "FALL") {
+      io.emit("FALL_DETECTED", {
+        id: event.id,
+        status: event.status,
+        confidence: event.confidence,
+        imageUrl: event.imageUrl,
+        timestamp: event.timestamp.toISOString(),
+      });
+    }
 
     return res.status(201).json({ ok: true, eventId: event.id });
   } catch (error) {

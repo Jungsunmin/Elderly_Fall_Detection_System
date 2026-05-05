@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import { io } from "socket.io-client";
 
 import CameraIcon from "../assets/cameraIcon.svg";
 import LiveIcon from "../assets/liveIcon.svg";
@@ -46,7 +47,7 @@ const formatDateTime = (iso: string) =>
   });
 
 const DashboardPage = () => {
-  const { headerStatus } = useOutletContext<LayoutContext>();
+  const { headerStatus, refreshStatus } = useOutletContext<LayoutContext>();
   const [recentEvents, setRecentEvents] = useState<RecentEventItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,6 +75,21 @@ const DashboardPage = () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const socket = io("http://localhost:4000", {
+      transports: ["websocket"],
+    });
+
+    socket.on("FALL_DETECTED", (event: RecentEventItem) => {
+      setRecentEvents((prev) => [event, ...prev].slice(0, 10));
+      void refreshStatus();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [refreshStatus]);
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-8 pt-3">

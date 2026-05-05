@@ -22,7 +22,7 @@ const AppLayout = () => {
 
   //status는 backend에서 받아올 예정.
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    setIsSidebarOpen((prev) => !prev);
   };
 
   const refreshStatus = async () => {
@@ -36,7 +36,7 @@ const AppLayout = () => {
   };
 
   useEffect(() => {
-    refreshStatus();
+    void refreshStatus();
   }, []);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ const AppLayout = () => {
   }
 
   return (
-    <div className="relative flex min-h-dvh w-full flex-col bg-[#F8F9FA overflow-hidden">
+    <div className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#F8F9FA]">
       <Header title={title} status={headerStatus} toggleSidebar={toggleSidebar} />
 
       <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
