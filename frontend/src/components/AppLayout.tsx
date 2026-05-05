@@ -1,35 +1,38 @@
-import { useState, type ReactNode } from "react";
-
+import { useState } from "react";
+import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
-type AppLayoutProps = {
-  title: string;
-  statusLabel?: string;
-  statusTone?: "normal" | "danger";
-  children: ReactNode;
-};
+import { useLocation } from "react-router-dom";
 
-const AppLayout = ({
-  title,
-  statusLabel = "정상",
-  statusTone = "normal",
-  children,
-}: AppLayoutProps) => {
+type statusType = "normal" | "danger";
+const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  //statusTone은
+  const location = useLocation();
+  const currentPath = location.pathname;
+  const [status, setStatus] = useState<statusType>("normal");
+  
+  //status는 backend에서 받아올 예정. 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  let title = "";
+
+  if (currentPath.includes("/dashboard")) {
+    title = "대시보드";
+  } else if (currentPath.includes("/event-record")) {
+    title = "이벤트 기록";
+  }
 
   return (
-    <div className="relative flex min-h-dvh w-full flex-col bg-[#F8F9FA]">
-      <Header
-        title={title}
-        statusLabel={statusLabel}
-        statusTone={statusTone}
-        onMenuClick={() => setIsSidebarOpen(true)}
-      />
+    <div className="relative flex min-h-dvh w-full flex-col bg-[#F8F9FA overflow-hidden">
+      <Header title={title} status={status} toggleSidebar={toggleSidebar} />
 
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar}/>
 
-      <main className="flex flex-1 flex-col gap-4 px-4 pb-8 pt-3">{children}</main>
+      <Outlet />
     </div>
   );
 };

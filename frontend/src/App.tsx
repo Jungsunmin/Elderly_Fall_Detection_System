@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import EventRecordPage from "./pages/EventRecordPage";
 import DashboardPage from "./pages/DashboardPage";
 import Login from "./Login";
+import AppLayout from "./components/AppLayout";
 
 const router = createBrowserRouter([
   {
@@ -25,12 +26,17 @@ const router = createBrowserRouter([
     element: <Login />,
   },
   {
-    path: "/event-record",
-    element: <EventRecordPage />,
-  },
-  {
-    path: "/dashboard",
-    element: <DashboardPage />,
+    element: <AppLayout />,
+    children: [
+      {
+        path: "/dashboard",
+        element: <DashboardPage />,
+      },
+      {
+        path: "/event-record",
+        element: <EventRecordPage />,
+      },
+    ]
   },
 ]);
 

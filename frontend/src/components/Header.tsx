@@ -1,11 +1,10 @@
-export type HeaderStatusTone = "normal" | "danger";
+import menuIcon from "../assets/menuIcon.svg";
+type HeaderStatusTone = "normal" | "danger";
 
-export type HeaderProps = {
+type HeaderProps = {
   title: string;
-  statusLabel?: string;
-  statusTone?: HeaderStatusTone;
-  onMenuClick?: () => void;
-  className?: string;
+  status: HeaderStatusTone;
+  toggleSidebar: () => void;
 };
 
 const toneStyles: Record<
@@ -24,43 +23,26 @@ const toneStyles: Record<
   },
 };
 
-const MenuIcon = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    className="text-neutral-800"
-    aria-hidden
-  >
-    <path d="M4 6h16M4 12h16M4 18h16" />
-  </svg>
-);
-
 const Header = ({
   title,
-  statusLabel = "정상",
-  statusTone = "normal",
-  onMenuClick,
-  className = "",
+  status,
+  toggleSidebar,
 }: HeaderProps) => {
-  const tone = toneStyles[statusTone];
+  const tone = toneStyles[status];
+  const statusLabel = status === "normal" ? "정상" : "위험";
 
   return (
     <header
-      className={`sticky top-0 z-20 w-full border-b border-neutral-200 bg-white ${className}`}
+      className={`sticky top-0 z-20 w-full border-b border-neutral-200 bg-white`}
     >
       <div className="relative flex h-14 items-center justify-between px-4">
         <button
           type="button"
-          onClick={onMenuClick}
+          onClick={toggleSidebar}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-neutral-800 transition hover:bg-neutral-100 active:bg-neutral-200"
-          aria-label="메뉴 열기"
+          aria-label="메뉴 열고 닫기"
         >
-          <MenuIcon />
+          <img src={menuIcon} alt="menu" className="h-6 w-6" />
         </button>
 
         <h1 className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[17px] font-bold text-black">
@@ -71,7 +53,10 @@ const Header = ({
           className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 ${tone.wrap}`}
           role="status"
         >
-          <span className={`h-2 w-2 shrink-0 rounded-full ${tone.dot}`} aria-hidden />
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full ${tone.dot}`}
+            aria-hidden
+          />
           <span className={`text-[13px] font-medium leading-none ${tone.text}`}>
             {statusLabel}
           </span>

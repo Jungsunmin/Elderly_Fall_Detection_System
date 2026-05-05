@@ -8,7 +8,7 @@ import calendarIcon from "../assets/calendarIcon.svg";
 
 const EventRecordPage = () => {
   return (
-    <AppLayout title="이벤트 기록" statusLabel="정상" statusTone="normal">
+    <div className="flex flex-col gap-4 px-4 pb-8 pt-3">
       <section className="rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm">
         <h2 className="text-[16px] font-bold text-neutral-900">이벤트 발생 기록</h2>
         <p className="mt-1.5 text-[13px] leading-snug text-neutral-500">
@@ -45,7 +45,7 @@ const EventRecordPage = () => {
           </p>
         </div>
       </section>
-    </AppLayout>
+    </div>
   );
 };
 

@@ -32,7 +32,7 @@ const StatusRow = ({ label, badge, badgeVariant }: StatusRowProps) => (
 
 const DashboardPage = () => {
   return (
-    <AppLayout title="대시보드" statusLabel="정상" statusTone="normal">
+    <div className="flex flex-col gap-4 px-4 pb-8 pt-3">
       <section className="overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
           <div className="flex items-center gap-2">
@@ -108,7 +108,7 @@ const DashboardPage = () => {
           </p>
         </div>
       </section>
-    </AppLayout>
+    </div>
   );
 };
 

@@ -26,7 +26,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       <button
         type="button"
         onClick={onClose}
-        className={`absolute inset-0 bg-black/25 transition-opacity ${
+        className={`absolute inset-0 bg-black/25 transition-opacity duration-300 ${
           isOpen ? "opacity-100" : "opacity-0"
         }`}
         aria-label="사이드바 닫기"
@@ -34,9 +34,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
       <aside
         onClick={handlePanelClick}
-        className={`absolute left-0 top-0 flex h-full w-[280px] flex-col border-r border-neutral-200 bg-white shadow-xl transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`absolute left-0 top-0 flex h-full w-[280px] flex-col border-r border-neutral-200 bg-white
+    transition-transform duration-300 ease-in-out will-change-transform
+    ${isOpen ? "translate-x-0 shadow-xl" : "-translate-x-[105%] shadow-none"}`}
       >
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-4">
           <div className="flex items-center gap-2">
