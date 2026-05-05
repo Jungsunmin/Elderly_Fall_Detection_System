@@ -1,6 +1,5 @@
-import React from "react";
-
-import AppLayout from "../components/AppLayout";
+import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 
 import CameraIcon from "../assets/cameraIcon.svg";
 import LiveIcon from "../assets/liveIcon.svg";
@@ -9,10 +8,13 @@ import CheckIcon from "../assets/checkIcon.svg";
 import SystemIcon from "../assets/systemIcon.svg";
 import ClockIcon from "../assets/clockIcon.svg";
 
+import { getRecentEvents, type RecentEventItem } from "../apis/dashboardApi";
+import type { LayoutContext } from "../components/AppLayout";
+
 type StatusRowProps = {
   label: string;
   badge: string;
-  badgeVariant: "success" | "neutral";
+  badgeVariant: "success" | "neutral" | "danger";
 };
 
 const StatusRow = ({ label, badge, badgeVariant }: StatusRowProps) => (
@@ -22,7 +24,9 @@ const StatusRow = ({ label, badge, badgeVariant }: StatusRowProps) => (
       className={
         badgeVariant === "success"
           ? "rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[12px] font-medium text-[#1e7e34]"
-          : "rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-600"
+          : badgeVariant === "danger"
+            ? "rounded-full bg-red-100 px-2.5 py-1 text-[12px] font-medium text-red-700"
+            : "rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-600"
       }
     >
       {badge}
@@ -30,7 +34,47 @@ const StatusRow = ({ label, badge, badgeVariant }: StatusRowProps) => (
   </div>
 );
 
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
 const DashboardPage = () => {
+  const { headerStatus } = useOutletContext<LayoutContext>();
+  const [recentEvents, setRecentEvents] = useState<RecentEventItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const isDanger = useMemo(() => headerStatus === "danger", [headerStatus]);
+  const latestEvent = recentEvents[0] ?? null;
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadRecent = async () => {
+      try {
+        const recentRes = await getRecentEvents(10);
+        if (!mounted) return;
+        setRecentEvents(recentRes.items);
+      } catch (error) {
+        console.error("최근 이벤트 로딩 실패:", error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadRecent();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div className="flex flex-col gap-4 px-4 pb-8 pt-3">
       <section className="overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm">
@@ -48,6 +92,7 @@ const DashboardPage = () => {
             </span>
           </div>
         </div>
+
         <div className="relative aspect-[4/3] w-full bg-neutral-200">
           <div
             className="absolute inset-0 bg-cover bg-center"
@@ -58,15 +103,20 @@ const DashboardPage = () => {
           />
           <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
             <div className="rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm">
-              2024-05-03 22:10:22
+              {latestEvent ? formatDateTime(latestEvent.timestamp) : "-"}
             </div>
-            <div className="flex items-center gap-1 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-medium text-[#90EE90] backdrop-blur-sm">
+            <div
+              className={`flex items-center gap-1 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm ${
+                isDanger ? "text-red-300" : "text-[#90EE90]"
+              }`}
+            >
               <img src={CheckIconGreen} alt="CheckGreen" />
-              안전 상태
+              {isDanger ? "위험 상태" : "안전 상태"}
             </div>
           </div>
         </div>
       </section>
+
       <section className="rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm">
         <div className="mb-1 flex items-center gap-2">
           <img src={SystemIcon} alt="System" />
@@ -86,12 +136,13 @@ const DashboardPage = () => {
             badgeVariant="success"
           />
           <StatusRow
-            label="최근 무동작 시간"
-            badge="0분"
-            badgeVariant="neutral"
+            label="현재 감지 상태"
+            badge={isDanger ? "위험 감지됨" : "정상"}
+            badgeVariant={isDanger ? "danger" : "neutral"}
           />
         </div>
       </section>
+
       <section className="rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <img src={ClockIcon} alt="Clock" />
@@ -99,14 +150,50 @@ const DashboardPage = () => {
             최근 이벤트
           </h2>
         </div>
-        <div className="flex flex-col items-center justify-center py-10">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100">
-            <img src={CheckIcon} alt="Check" />
-          </div>
-          <p className="mt-4 text-center text-[14px] text-neutral-500">
-            기록된 특이사항이 없습니다.
+
+        {loading ? (
+          <p className="py-8 text-center text-[14px] text-neutral-500">
+            불러오는 중...
           </p>
-        </div>
+        ) : recentEvents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100">
+              <img src={CheckIcon} alt="Check" />
+            </div>
+            <p className="mt-4 text-center text-[14px] text-neutral-500">
+              기록된 특이사항이 없습니다.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {recentEvents.map((event) => (
+              <div
+                key={event.id}
+                className="rounded-xl border border-neutral-200 p-3 text-[13px] text-neutral-700"
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`font-semibold ${
+                      event.status === "FALL"
+                        ? "text-red-600"
+                        : "text-neutral-700"
+                    }`}
+                  >
+                    {event.status === "FALL" ? "낙상 감지" : "정상 감지"}
+                  </span>
+                  <span className="text-neutral-500">
+                    {formatDateTime(event.timestamp)}
+                  </span>
+                </div>
+                {event.confidence !== null && (
+                  <p className="mt-1 text-neutral-500">
+                    신뢰도: {(event.confidence * 100).toFixed(1)}%
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
