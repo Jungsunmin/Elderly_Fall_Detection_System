@@ -1,76 +1,139 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-import { Server } from 'socket.io';
-import http from 'http';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import http from "http";
+import { PrismaClient } from "@prisma/client";
+import { Server as SocketIOServer } from "socket.io";
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*", // 실제 배포 시에는 프론트엔드 주소로 제한 필요
-    methods: ["GET", "POST"]
-  }
+const io = new SocketIOServer(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 4000;
+const DANGER_MS = 10 * 60 * 1000; // 10분
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // 이미지 데이터를 받기 위해 한도 증가
+app.use(express.json({ limit: "10mb" }));
 
-// 1. 기본 라우트
-app.get('/', (req, res) => {
-  res.send('SafeWatch Backend is running!');
+app.get("/", (_req, res) => {
+  res.send("SafeWatch Backend is running!");
 });
 
-// 2. AI Worker로부터 낙상 감지 신호를 받는 API
-app.post('/api/events/detect', async (req, res) => {
-  const { status, image, confidence } = req.body;
-
-  console.log(`[EVENT] ${status} 감지됨!`);
-
+/**
+ * AI-worker -> 낙상 이벤트 수신
+ * body: { status: "FALL" | "STILL", image?: string, confidence?: number, userId?: number }
+ */
+app.post("/api/events/detect", async (req, res) => {
   try {
-    // DB에 기록 저장
+    const { status, image, confidence, userId } = req.body as {
+      status?: string;
+      image?: string;
+      confidence?: number;
+      userId?: number;
+    };
+
+    if (!status || (status !== "FALL" && status !== "STILL")) {
+      return res.status(400).json({ error: "status는 FALL 또는 STILL 이어야 합니다." });
+    }
+
     const event = await prisma.fallEvent.create({
       data: {
-        status: status,
-        imageUrl: image, // Base64 이미지 데이터
-        confidence: confidence || 0.0,
-      }
+        status,
+        imageUrl: image ?? null,
+        confidence: typeof confidence === "number" ? confidence : null,
+        userId: typeof userId === "number" ? userId : null,
+      },
     });
 
-    // 실시간으로 프론트엔드에 소켓 전송
-    io.emit('new-event', event);
+    // 프론트로 실시간 전송
+    io.emit("FALL_DETECTED", {
+      id: event.id,
+      status: event.status,
+      confidence: event.confidence,
+      imageUrl: event.imageUrl,
+      timestamp: event.timestamp.toISOString(),
+    });
 
-    res.status(200).json({ message: 'Event recorded successfully', event });
+    return res.status(201).json({ ok: true, eventId: event.id });
   } catch (error) {
-    console.error('DB 저장 실패:', error);
-    res.status(500).json({ error: 'Failed to record event' });
+    console.error("POST /api/events/detect error:", error);
+    return res.status(500).json({ error: "이벤트 저장 실패" });
   }
 });
 
-// 3. 전체 낙상 이력 조회 API
-app.get('/api/events', async (req, res) => {
+/**
+ * 최근 이벤트 조회
+ */
+app.get("/api/events/recent", async (req, res) => {
   try {
-    const events = await prisma.fallEvent.findMany({
-      orderBy: { timestamp: 'desc' },
-      take: 20
+    const limit = Number(req.query.limit ?? 10);
+    const safeLimit = Number.isNaN(limit) ? 10 : Math.min(Math.max(limit, 1), 50);
+
+    const items = await prisma.fallEvent.findMany({
+      orderBy: { timestamp: "desc" },
+      take: safeLimit,
     });
-    res.json(events);
+
+    return res.json({
+      items: items.map((e) => ({
+        id: e.id,
+        status: e.status,
+        confidence: e.confidence,
+        imageUrl: e.imageUrl,
+        timestamp: e.timestamp.toISOString(),
+      })),
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch events' });
+    console.error("GET /api/events/recent error:", error);
+    return res.status(500).json({ error: "최근 이벤트 조회 실패" });
   }
 });
 
-// 소켓 연결 설정
-io.on('connection', (socket) => {
-  console.log('클라이언트가 연결되었습니다:', socket.id);
+/**
+ * 대시보드 상태 조회 (최근 FALL 기준 10분 danger)
+ */
+app.get("/api/dashboard/status", async (_req, res) => {
+  try {
+    const lastFall = await prisma.fallEvent.findFirst({
+      where: { status: "FALL" },
+      orderBy: { timestamp: "desc" },
+      select: { timestamp: true },
+    });
+
+    if (!lastFall) {
+      return res.json({
+        status: "normal",
+        dangerUntil: null,
+        lastFallAt: null,
+        serverNow: new Date().toISOString(),
+      });
+    }
+
+    const dangerUntilDate = new Date(lastFall.timestamp.getTime() + DANGER_MS);
+    const now = new Date();
+    const status = now < dangerUntilDate ? "danger" : "normal";
+
+    return res.json({
+      status,
+      dangerUntil: dangerUntilDate.toISOString(),
+      lastFallAt: lastFall.timestamp.toISOString(),
+      serverNow: now.toISOString(),
+    });
+  } catch (error) {
+    console.error("GET /api/dashboard/status error:", error);
+    return res.status(500).json({ error: "상태 조회 실패" });
+  }
+});
+
+io.on("connection", (socket) => {
+  console.log("클라이언트 연결:", socket.id);
 });
 
 server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

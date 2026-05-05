@@ -19,9 +19,9 @@ model User {
 model FallEvent {
   id         Int      @id @default(autoincrement())
   timestamp  DateTime @default(now())
-  status     String   # "FALL" or "STILL"
+  status     String   
   confidence Float?
-  imageUrl   String?  # 캡처된 이미지 데이터(Base64 또는 경로)
+  imageUrl   String?  
   userId     Int?
   user       User?    @relation(fields: [userId], references: [id])
 }
