@@ -109,15 +109,14 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        <div className="relative aspect-[4/3] w-full bg-neutral-200">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage:
-                "linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.35) 100%), url(https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80)",
-            }}
+        <div className="relative aspect-[4/3] w-full bg-black">
+          <iframe
+            src="http://localhost:8888/webcam"
+            className="absolute inset-0 h-full w-full border-0"
+            allow="autoplay; fullscreen"
+            title="Camera Stream"
           />
-          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2 pointer-events-none">
             <div className="rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm">
               {latestEvent ? formatDateTime(latestEvent.timestamp) : "-"}
             </div>

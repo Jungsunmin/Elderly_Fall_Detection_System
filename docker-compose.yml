@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. Database (SQL)
   db:
@@ -11,7 +9,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: safewatch
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -37,7 +35,9 @@ services:
       - "8000:8000"
     environment:
       - BACKEND_URL=http://backend:4000
-      - CAMERA_SOURCE=0 # USB 웹캠은 0, IP 카메라는 RTSP 주소 입력
+      - CAMERA_SOURCE=rtsp://host.docker.internal:8554/webcam
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Mac에서는 기본 지원되나 명시적으로 추가
     depends_on:
       - backend
 
