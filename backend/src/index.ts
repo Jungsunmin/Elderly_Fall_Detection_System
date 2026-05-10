@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 import express from "express";
 import http from "http";
-import { configureApp } from "./app.js";
-import { attachSocketIO } from "./socket/io.js";
+import { configureApp } from "./app";
+import { attachSocketIO } from "./socket/io";
 
 dotenv.config();
 
@@ -15,5 +15,5 @@ const io = attachSocketIO(server);
 configureApp(app, io);
 
 server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
 });

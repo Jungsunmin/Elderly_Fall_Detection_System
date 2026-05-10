@@ -1,8 +1,9 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import type { Server as SocketIOServer } from "socket.io";
-import { createDashboardRouter } from "./routes/dashboard.js";
-import { createEventsRouter } from "./routes/events.js";
+import { createDashboardRouter } from "./routes/dashboard";
+import { createEventsRouter } from "./routes/events";
+import { createStatusRouter } from "./routes/status";
 
 export function configureApp(app: Express, io: SocketIOServer): void {
   app.use(cors());
@@ -14,4 +15,5 @@ export function configureApp(app: Express, io: SocketIOServer): void {
 
   app.use("/api/events", createEventsRouter(io));
   app.use("/api/dashboard", createDashboardRouter());
+  app.use("/api/status", createStatusRouter(io));
 }

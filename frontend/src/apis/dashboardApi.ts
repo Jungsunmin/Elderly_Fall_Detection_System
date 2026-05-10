@@ -36,3 +36,7 @@ export async function getRecentEvents(
     "GET",
   )) as RecentEventsResponse;
 }
+
+export async function getCameraStatus(): Promise<{ status: string }> {
+  return (await call("/api/status/camera", "GET")) as { status: string };
+}

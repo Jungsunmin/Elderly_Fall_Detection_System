@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Server as SocketIOServer } from "socket.io";
-import { prisma } from "../lib/prisma.js";
+import { prisma } from "../lib/prisma";
 
 export function createEventsRouter(io: SocketIOServer): Router {
   const router = Router();

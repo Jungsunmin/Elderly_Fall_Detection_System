@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { DANGER_MS } from "../config/constants.js";
-import { prisma } from "../lib/prisma.js";
+import { DANGER_MS } from "../config/constants";
+import { prisma } from "../lib/prisma";
 
 export function createDashboardRouter(): Router {
   const router = Router();

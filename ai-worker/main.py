@@ -64,7 +64,7 @@ class FallDetector:
             if self.cap.isOpened():
                 print(f"카메라 연결 성공: {self.source}", flush=True)
                 self.status = "ONLINE"
-                self.notify_backend_status("ONLINE")
+                self.notify_backend_status("ONLINE") # 여기서 보고 누락됨
                 return True
             else:
                 print(f"카메라 연결 실패: {self.source}", flush=True)
@@ -76,13 +76,17 @@ class FallDetector:
     def notify_backend_status(self, status):
         """백엔드에 카메라 상태를 보고합니다."""
         try:
-            requests.post(
-                f"{BACKEND_URL}/api/status/camera", 
+            url = f"{BACKEND_URL}/api/status/camera"
+            res = requests.post(
+                url, 
                 json={"status": status},
-                timeout=1
+                timeout=2
             )
-        except:
-            pass # 백엔드가 아직 안 떴을 경우 무시
+            if res.status_code != 200:
+                print(f"⚠️ 상태 보고 실패 (HTTP {res.status_code}): {url}", flush=True)
+        except Exception as e:
+            # 백엔드가 아직 안 떴을 경우 대비 (조용히 넘어감)
+            pass 
 
     async def run_detection(self):
         self.is_running = True
@@ -104,13 +108,19 @@ class FallDetector:
                 continue
 
             frame_count += 1
-            if frame_count % 100 == 0:
+            if frame_count % 30 == 0:
                 print(f"분석 중... (누적 {frame_count} 프레임)", flush=True)
+
+            # 300프레임마다(약 10초) 백엔드에 상태를 강제 동기화
+            if frame_count % 300 == 0:
+                self.notify_backend_status(self.status)
 
             # YOLO 분석
             results = self.model(frame, verbose=False)
             
             fall_detected = False
+            current_frame_detections = []
+            
             for r in results:
                 boxes = r.boxes
                 for box in boxes:
@@ -118,17 +128,26 @@ class FallDetector:
                     conf = float(box.conf[0])
                     class_name = self.model.names[cls]
                     
-                    # 로그 출력 (디버깅용)
-                    if conf > 0.1: 
-                        print(f"감지됨: {class_name} ({conf:.2f})", flush=True)
+                    # 현재 프레임에서 감지된 정보 저장
+                    current_frame_detections.append(f"{class_name}({conf:.2f})")
                     
-                    # 낙상 감지 (70% 임계값 적용)
+                    # 낙상 감지 로직 (70% 임계값)
                     if "fall" in class_name.lower() and conf > 0.7:
                         fall_detected = True
-                        print(f"⚠️ 낙상 감지 확정! (클래스: {class_name}, 신뢰도: {conf:.2f})", flush=True)
+                        print(f"\n[!] ⚠️ 낙상 감지 확정! -----------------------", flush=True)
+                        print(f"    클래스: {class_name}, 신뢰도: {conf:.2f}", flush=True)
+                        print(f"    전체 감지: {', '.join(current_frame_detections)}", flush=True)
+                        print(f"--------------------------------------------", flush=True)
                         break
                 if fall_detected:
                     break
+            
+            # 실시간 분석 로그 출력 (매 30프레임마다 강제 출력)
+            if frame_count % 30 == 0:
+                if current_frame_detections:
+                    print(f"[분석] {', '.join(current_frame_detections)}", flush=True)
+                else:
+                    print(f"[분석] 감지된 물체 없음", flush=True)
 
             if fall_detected:
                 try:

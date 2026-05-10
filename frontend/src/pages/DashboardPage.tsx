@@ -9,7 +9,7 @@ import CheckIcon from "../assets/checkIcon.svg";
 import SystemIcon from "../assets/systemIcon.svg";
 import ClockIcon from "../assets/clockIcon.svg";
 
-import { getRecentEvents, type RecentEventItem } from "../apis/dashboardApi";
+import { getRecentEvents, getCameraStatus, type RecentEventItem } from "../apis/dashboardApi";
 import type { LayoutContext } from "../components/AppLayout";
 
 type StatusRowProps = {
@@ -47,7 +47,7 @@ const formatDateTime = (iso: string) =>
   });
 
 const DashboardPage = () => {
-  const { headerStatus, refreshStatus } = useOutletContext<LayoutContext>();
+  const { headerStatus, cameraConnected, refreshStatus } = useOutletContext<LayoutContext>();
   const [recentEvents, setRecentEvents] = useState<RecentEventItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,25 +71,19 @@ const DashboardPage = () => {
 
     loadRecent();
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
     const socket = io("http://localhost:4000", {
       transports: ["websocket"],
     });
 
     socket.on("FALL_DETECTED", (event: RecentEventItem) => {
       setRecentEvents((prev) => [event, ...prev].slice(0, 10));
-      void refreshStatus();
     });
 
     return () => {
+      mounted = false;
       socket.disconnect();
     };
-  }, [refreshStatus]);
+  }, []);
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-8 pt-3">
@@ -101,10 +95,18 @@ const DashboardPage = () => {
               카메라 1
             </span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-red-50 px-2 py-0.5">
+          <div
+            className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 ${
+              cameraConnected ? "bg-green-50" : "bg-red-50"
+            }`}
+          >
             <img src={LiveIcon} alt="Live" />
-            <span className="text-[11px] font-bold tracking-wide text-red-600">
-              LIVE
+            <span
+              className={`text-[11px] font-bold tracking-wide ${
+                cameraConnected ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {cameraConnected ? "LIVE" : "OFFLINE"}
             </span>
           </div>
         </div>
@@ -142,13 +144,13 @@ const DashboardPage = () => {
         <div className="mt-2">
           <StatusRow
             label="AI 분석 엔진"
-            badge="정상 가동중"
-            badgeVariant="success"
+            badge={cameraConnected ? "정상 가동중" : "중지됨"}
+            badgeVariant={cameraConnected ? "success" : "danger"}
           />
           <StatusRow
             label="센서 연결"
-            badge="1/1 연결됨"
-            badgeVariant="success"
+            badge={cameraConnected ? "1/1 연결됨" : "0/1 연결됨"}
+            badgeVariant={cameraConnected ? "success" : "danger"}
           />
           <StatusRow
             label="현재 감지 상태"
