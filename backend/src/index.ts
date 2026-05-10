@@ -82,7 +82,7 @@ app.get("/api/events/recent", async (req, res) => {
     });
 
     return res.json({
-      items: items.map((e) => ({
+      items: items.map((e:any) => ({
         id: e.id,
         status: e.status,
         confidence: e.confidence,
