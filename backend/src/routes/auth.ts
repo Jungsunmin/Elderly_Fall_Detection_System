@@ -1,6 +1,6 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { prisma } from "../lib/prisma.js";
+import { prisma } from "../lib/prisma";
 
 type GoogleTokenResponse = {
   access_token: string;
