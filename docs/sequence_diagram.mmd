@@ -1,0 +1,35 @@
+sequenceDiagram
+    autonumber
+    
+    %% 외부 엔티티 (System Boundary 외부)
+    actor C as 외부 IP 카메라
+    actor P as 보호자
+    
+    %% SafeWatch 내부 시스템 경계
+    box lightblue SafeWatch System (구현 범위)
+        participant AI as AI Worker (Python)
+        participant B as Backend (Node.js)
+        participant DB as Database (PostgreSQL)
+        participant F as Frontend (React)
+    end
+
+    Note over C, AI: [1. 감지 단계]
+    C->>AI: 실시간 RTSP/HTTP 스트림 전송
+    AI->>AI: YOLOv8 모델 프레임 분석
+    
+    rect rgb(255, 235, 235)
+        Note right of AI: 낙상 확정 (FALL)
+        
+        Note over AI, B: [2. 통보 단계]
+        AI->>B: POST /api/events/detect (이미지 및 데이터)
+        
+        Note over B, DB: [3. 저장 및 전파 단계]
+        B->>DB: 낙상 이벤트 내역 저장 (Prisma)
+        DB-->>B: 저장 완료
+        
+        B-->>F: Socket.io 실시간 이벤트 발행
+        
+        Note over F, P: [4. 알림 단계]
+        F->>F: 대시보드 UI 경고 활성화
+        F->>P: 실시간 알림 팝업 및 경고음 송출
+    end
