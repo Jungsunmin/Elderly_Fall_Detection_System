@@ -74,5 +74,39 @@ export function createEventsRouter(io: SocketIOServer): Router {
     }
   });
 
+  /** CSV 다운로드 */
+  router.get("/download", async (req, res) => {
+    try {
+      const items = await prisma.fallEvent.findMany({
+        orderBy: { timestamp: "desc" },
+      });
+
+      let csv = "ID,Timestamp,Status,Confidence\n";
+      items.forEach((item) => {
+        csv += `${item.id},${item.timestamp.toISOString()},${item.status},${
+          item.confidence ?? ""
+        }\n`;
+      });
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=fall_events.csv");
+      return res.status(200).send(csv);
+    } catch (error) {
+      console.error("GET /api/events/download error:", error);
+      return res.status(500).json({ error: "CSV 다운로드 실패" });
+    }
+  });
+
+  /** 기록 전체 삭제 */
+  router.delete("/all", async (req, res) => {
+    try {
+      await prisma.fallEvent.deleteMany({});
+      return res.json({ ok: true });
+    } catch (error) {
+      console.error("DELETE /api/events/all error:", error);
+      return res.status(500).json({ error: "기록 삭제 실패" });
+    }
+  });
+
   return router;
 }

@@ -4,7 +4,7 @@ import downloadIcon from "../assets/downloadIcon.svg";
 import trashcanIcon from "../assets/trashcanIcon.svg";
 import calendarIcon from "../assets/calendarIcon.svg";
 
-import { getRecentEvents, type RecentEventItem } from "../apis/dashboardApi";
+import { getRecentEvents, type RecentEventItem, deleteAllEvents, API_BASE_URL } from "../apis/dashboardApi";
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString("ko-KR", {
@@ -21,19 +21,40 @@ const EventRecordPage = () => {
   const [events, setEvents] = useState<RecentEventItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadEvents = async () => {
+    try {
+      const res = await getRecentEvents(50);
+      setEvents(res.items);
+    } catch (error) {
+      console.error("이벤트 기록 로딩 실패:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadEvents = async () => {
-      try {
-        const res = await getRecentEvents(50);
-        setEvents(res.items);
-      } catch (error) {
-        console.error("이벤트 기록 로딩 실패:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadEvents();
   }, []);
+
+  const handleDownload = () => {
+    const accessToken = localStorage.getItem("accessToken");
+    const url = `${API_BASE_URL}/api/events/download${
+      accessToken ? `?token=${accessToken}` : ""
+    }`;
+    window.open(url, "_blank");
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("정말로 모든 기록을 삭제하시겠습니까?")) return;
+    try {
+      await deleteAllEvents();
+      setEvents([]);
+      alert("모든 기록이 삭제되었습니다.");
+    } catch (error) {
+      console.error("기록 삭제 실패:", error);
+      alert("기록 삭제에 실패했습니다.");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 px-4 pb-8 pt-3">
@@ -45,13 +66,15 @@ const EventRecordPage = () => {
         <div className="mt-4 flex flex-row gap-2">
           <button
             type="button"
+            onClick={handleDownload}
             className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-[13px] font-medium text-neutral-800 transition hover:bg-neutral-50 active:bg-neutral-100"
           >
             <img src={downloadIcon} alt="" className="h-[18px] w-[18px] shrink-0" />
-            엑셀 다운로드
+            CSV 다운로드
           </button>
           <button
             type="button"
+            onClick={handleDelete}
             className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2.5 text-[13px] font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100/80"
           >
             <img src={trashcanIcon} alt="" className="h-[18px] w-[18px] shrink-0" />

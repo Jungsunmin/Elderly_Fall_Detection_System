@@ -1,4 +1,7 @@
 import { call } from "./auth/ApiService";
+import { API_BASE_URL } from "./auth/api-config";
+
+export { API_BASE_URL };
 
 export type HeaderStatus = "normal" | "danger";
 
@@ -39,4 +42,8 @@ export async function getRecentEvents(
 
 export async function getCameraStatus(): Promise<{ status: string }> {
   return (await call("/api/status/camera", "GET")) as { status: string };
+}
+
+export async function deleteAllEvents(): Promise<{ ok: boolean }> {
+  return (await call("/api/events/all", "DELETE")) as { ok: boolean };
 }

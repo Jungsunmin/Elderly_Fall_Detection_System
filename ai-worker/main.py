@@ -3,6 +3,7 @@ import asyncio
 import os
 import requests
 import base64
+import time
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from ultralytics import YOLO
@@ -63,6 +64,8 @@ class FallDetector:
             
             if self.cap.isOpened():
                 print(f"카메라 연결 성공: {self.source}", flush=True)
+                # 버퍼 크기를 1로 제한하여 지연(Lag) 최소화
+                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                 self.status = "ONLINE"
                 self.notify_backend_status("ONLINE") # 여기서 보고 누락됨
                 return True
@@ -92,6 +95,8 @@ class FallDetector:
         self.is_running = True
         self.load_model()
         frame_count = 0
+        last_status_time = time.time()
+        last_event_time = 0 # 이벤트 전송 쿨타임 관리용
         
         while self.is_running:
             if not await self.check_camera():
@@ -111,9 +116,11 @@ class FallDetector:
             if frame_count % 30 == 0:
                 print(f"분석 중... (누적 {frame_count} 프레임)", flush=True)
 
-            # 300프레임마다(약 10초) 백엔드에 상태를 강제 동기화
-            if frame_count % 300 == 0:
+            # 시간 기반으로 2초마다 백엔드에 상태를 강제 동기화 (프레임 처리 속도와 무관하게)
+            current_time = time.time()
+            if current_time - last_status_time > 2:
                 self.notify_backend_status(self.status)
+                last_status_time = current_time
 
             # YOLO 분석
             results = self.model(frame, verbose=False)
@@ -150,17 +157,27 @@ class FallDetector:
                     print(f"[분석] 감지된 물체 없음", flush=True)
 
             if fall_detected:
-                try:
-                    _, buffer = cv2.imencode('.jpg', frame)
-                    img_base64 = base64.b64encode(buffer).decode('utf-8')
-                    requests.post(
-                        f"{BACKEND_URL}/api/events/detect", 
-                        json={"status": "FALL", "image": img_base64},
-                        timeout=1
-                    )
-                    print(f"✅ 백엔드로 낙상 이벤트 전송 완료 (신뢰도: {conf:.2f})", flush=True)
-                except Exception as e:
-                    print(f"❌ 이벤트 전송 실패: {e}", flush=True)
+                current_time = time.time()
+                # 마지막 전송 후 5초가 지나야만 다시 전송 (중복 전송 방지)
+                if current_time - last_event_time > 5:
+                    try:
+                        _, buffer = cv2.imencode('.jpg', frame)
+                        img_base64 = base64.b64encode(buffer).decode('utf-8')
+                        requests.post(
+                            f"{BACKEND_URL}/api/events/detect", 
+                            json={
+                                "status": "FALL", 
+                                "image": img_base64,
+                                "confidence": conf
+                            },
+                            timeout=1
+                        )
+                        print(f"✅ 백엔드로 낙상 이벤트 전송 완료 (신뢰도: {conf:.2f})", flush=True)
+                        last_event_time = current_time
+                    except Exception as e:
+                        print(f"❌ 이벤트 전송 실패: {e}", flush=True)
+                else:
+                    print(f"⏳ 낙상 감지 중... (전송 쿨타임 대기 중)", flush=True)
 
             await asyncio.sleep(0.01)
 
