@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import type { Server as SocketIOServer } from "socket.io";
 import { prisma } from "../lib/prisma";
 
@@ -9,7 +9,7 @@ export function createEventsRouter(io: SocketIOServer): Router {
    * AI-worker -> 낙상 이벤트 수신
    * body: { status: "FALL" | "STILL", image?: string, confidence?: number, userId?: number }
    */
-  router.post("/detect", async (req, res) => {
+  router.post("/detect", async (req: Request, res: Response) => {
     try {
       const { status, image, confidence, userId } = req.body as {
         status?: string;
@@ -49,7 +49,7 @@ export function createEventsRouter(io: SocketIOServer): Router {
   });
 
   /** 최근 이벤트 조회 */
-  router.get("/recent", async (req, res) => {
+  router.get("/recent", async (req: Request, res: Response) => {
     try {
       const limit = Number(req.query.limit ?? 10);
       const safeLimit = Number.isNaN(limit) ? 10 : Math.min(Math.max(limit, 1), 50);
@@ -60,7 +60,7 @@ export function createEventsRouter(io: SocketIOServer): Router {
       });
 
       return res.json({
-        items: items.map((e) => ({
+        items: items.map((e: any) => ({
           id: e.id,
           status: e.status,
           confidence: e.confidence,
@@ -75,20 +75,26 @@ export function createEventsRouter(io: SocketIOServer): Router {
   });
 
   /** CSV 다운로드 */
-  router.get("/download", async (req, res) => {
+  router.get("/download", async (req: Request, res: Response) => {
     try {
       const items = await prisma.fallEvent.findMany({
+        select: {
+          id: true,
+          timestamp: true,
+          status: true,
+          confidence: true,
+        },
         orderBy: { timestamp: "desc" },
       });
 
-      let csv = "ID,Timestamp,Status,Confidence\n";
-      items.forEach((item) => {
-        csv += `${item.id},${item.timestamp.toISOString()},${item.status},${
-          item.confidence ?? ""
-        }\n`;
+      let csv = "\uFEFFID,Timestamp,Status,Confidence\n"; // UTF-8 BOM for Excel
+      items.forEach((item: any) => {
+        const timeStr = item.timestamp ? item.timestamp.toISOString() : "";
+        const confStr = item.confidence !== null ? item.confidence.toFixed(4) : "";
+        csv += `${item.id},${timeStr},${item.status},${confStr}\n`;
       });
 
-      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", "attachment; filename=fall_events.csv");
       return res.status(200).send(csv);
     } catch (error) {
@@ -98,7 +104,7 @@ export function createEventsRouter(io: SocketIOServer): Router {
   });
 
   /** 기록 전체 삭제 */
-  router.delete("/all", async (req, res) => {
+  router.delete("/all", async (req: Request, res: Response) => {
     try {
       await prisma.fallEvent.deleteMany({});
       return res.json({ ok: true });

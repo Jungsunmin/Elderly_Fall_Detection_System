@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import downloadIcon from "../assets/downloadIcon.svg";
 import trashcanIcon from "../assets/trashcanIcon.svg";
@@ -36,12 +36,29 @@ const EventRecordPage = () => {
     loadEvents();
   }, []);
 
-  const handleDownload = () => {
-    const accessToken = localStorage.getItem("accessToken");
-    const url = `${API_BASE_URL}/api/events/download${
-      accessToken ? `?token=${accessToken}` : ""
-    }`;
-    window.open(url, "_blank");
+  const handleDownload = async () => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      const url = `${API_BASE_URL}/api/events/download`;
+      
+      const response = await fetch(url, {
+        headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
+      });
+
+      if (!response.ok) throw new Error("Download failed");
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.setAttribute("download", `fall_events_${new Date().getTime()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("다운로드 에러:", error);
+      alert("다운로드에 실패했습니다.");
+    }
   };
 
   const handleDelete = async () => {
