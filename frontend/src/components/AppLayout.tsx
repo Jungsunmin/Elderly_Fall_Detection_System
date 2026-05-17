@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
+import { io } from "socket.io-client";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
-import { getDashboardStatus, type HeaderStatus } from "../apis/dashboardApi";
+import { getDashboardStatus, getCameraStatus, type HeaderStatus } from "../apis/dashboardApi";
 
 import { useLocation } from "react-router-dom";
 
 type LayoutContext = {
   headerStatus: HeaderStatus;
+  cameraConnected: boolean;
   dangerUntil: string | null;
   refreshStatus: () => Promise<void>;
 };
@@ -15,12 +17,12 @@ type LayoutContext = {
 const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [headerStatus, setHeaderStatus] = useState<HeaderStatus>("normal");
+  const [cameraConnected, setCameraConnected] = useState(false);
   const [dangerUntil, setDangerUntil] = useState<string | null>(null);
 
   const location = useLocation();
   const currentPath = location.pathname;
 
-  //status는 backend에서 받아올 예정.
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev);
   };
@@ -35,8 +37,35 @@ const AppLayout = () => {
     }
   };
 
+  const refreshCameraStatus = async () => {
+    try {
+      const statusRes = await getCameraStatus();
+      setCameraConnected(statusRes.status === "ONLINE");
+    } catch (error) {
+      console.error("camera status 조회 실패:", error);
+    }
+  };
+
   useEffect(() => {
     void refreshStatus();
+    void refreshCameraStatus();
+
+    const backendUrl = `http://${window.location.hostname}:4000`;
+    const socket = io(backendUrl, {
+      transports: ["websocket"],
+    });
+
+    socket.on("FALL_DETECTED", () => {
+      void refreshStatus();
+    });
+
+    socket.on("CAMERA_STATUS_CHANGED", (data: { status: string }) => {
+      setCameraConnected(data.status === "ONLINE");
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -64,7 +93,7 @@ const AppLayout = () => {
 
       <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar} />
 
-      <Outlet context={{ headerStatus, dangerUntil, refreshStatus } satisfies LayoutContext} />
+      <Outlet context={{ headerStatus, cameraConnected, dangerUntil, refreshStatus } satisfies LayoutContext} />
     </div>
   );
 };

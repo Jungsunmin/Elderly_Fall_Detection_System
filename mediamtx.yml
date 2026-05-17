@@ -1,0 +1,4 @@
+# MediaMTX v1.x Configuration
+# 'webcam' 경로를 명시적으로 허용합니다.
+paths:
+  webcam:

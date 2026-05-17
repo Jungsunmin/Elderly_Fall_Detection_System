@@ -2,12 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+COPY package.json ./
+RUN npm install prisma@6.2.1 @prisma/client@6.2.1 && npm install
 
 COPY . .
-RUN npx prisma generate
 
 EXPOSE 4000
 
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npx prisma@6.2.1 generate && npm run dev"]
